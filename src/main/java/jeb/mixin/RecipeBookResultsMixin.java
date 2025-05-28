@@ -1,0 +1,143 @@
+package jeb.mixin;
+
+import com.llamalad7.mixinextras.sugar.Local;
+import jeb.accessor.ClientRecipeBookAccessor;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.recipebook.*;
+import net.minecraft.client.network.ClientPlayNetworkHandler;
+import net.minecraft.client.recipebook.ClientRecipeBook;
+import net.minecraft.client.recipebook.RecipeBookGroup;
+import net.minecraft.item.ItemStack;
+import net.minecraft.network.packet.c2s.play.RecipeBookDataC2SPacket;
+import net.minecraft.recipe.Recipe;
+import net.minecraft.screen.AbstractRecipeScreenHandler;
+import net.minecraft.screen.ScreenHandler;
+import org.jetbrains.annotations.Nullable;
+import org.spongepowered.asm.mixin.Final;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+@Mixin(RecipeBookResults.class)
+public class RecipeBookResultsMixin {
+
+
+    @Unique
+    private RecipeBookWidget jeb$widget;
+
+    @Shadow
+    private RecipeAlternativesWidget alternatesWidget;
+
+    @Shadow
+    private Recipe<?> lastClickedRecipe;
+
+
+
+    @Shadow
+    @Nullable
+    private RecipeResultCollection resultCollection;
+
+    @Shadow private MinecraftClient client;
+
+    @Inject(method = "setGui", at = @At("HEAD"))
+    private void captureWidget(RecipeBookWidget widget, CallbackInfo ci) {
+        this.jeb$widget = widget;
+    }
+
+    @Inject(
+            method = "mouseClicked",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/gui/screen/recipebook/AnimatedResultButton;mouseClicked(DDI)Z",
+                    shift = At.Shift.AFTER
+            ),
+            cancellable = true
+    )
+    private void onRightClickInject(
+            double mouseX, double mouseY, int button, int areaLeft, int areaTop, int areaWidth, int areaHeight, CallbackInfoReturnable<Boolean> cir, @Local AnimatedResultButton animatedResultButton
+    ) {
+
+        if (animatedResultButton.mouseClicked(mouseX, mouseY, button)) {
+
+            if (button == 1) {
+                ItemStack stack = animatedResultButton.currentRecipe().getOutput(this.client.world.getRegistryManager());
+                String itemName = stack.getItem().getName().getString(); // Локализованное имя (например, "Булыжник")
+                String searchText = "#" + itemName.toLowerCase(Locale.ROOT);
+
+// Устанавливаем в поиск
+                ((RecipeBookWidgetAccessor) jeb$widget).getSearchField().setText(searchText);
+                ((RecipeBookWidgetAccessor) jeb$widget).invokeReset();
+
+                cir.setReturnValue(true);
+                cir.cancel();
+            }
+
+
+            if (button == 0) {
+
+
+                //System.out.println(animatedResultButton.getCurrentId().toString());
+
+                MinecraftClient client = MinecraftClient.getInstance();
+                ClientRecipeBook recipeBook = client.player.getRecipeBook();
+
+                RecipeResultCollection entry = animatedResultButton.getResultCollection();
+
+                if(entry != null) {
+
+                    if(!canDisplay(animatedResultButton.currentRecipe())
+                    )
+                    {
+                        alternatesWidget.showAlternativesForResult(this.client,entry, animatedResultButton.getX(), animatedResultButton.getY(), areaLeft + areaWidth / 2, areaTop + 13 + areaHeight / 2, (float) animatedResultButton.getWidth());
+                    }
+                    else
+                    {
+
+                        this.lastClickedRecipe = animatedResultButton.currentRecipe();
+                        this.resultCollection = animatedResultButton.getResultCollection();
+                        //recipeBook.shouldDisplay(animatedResultButton.currentRecipe());
+                        recipeBook.onRecipeDisplayed(animatedResultButton.currentRecipe());
+                        ClientPlayNetworkHandler networkHandler = MinecraftClient.getInstance().getNetworkHandler();
+                        networkHandler.sendPacket(new RecipeBookDataC2SPacket(animatedResultButton.currentRecipe()));
+                        /*this.lastClickedRecipe = animatedResultButton.getCurrentId();
+                        this.resultCollection = animatedResultButton.getResultCollection();
+                        recipeBook.unmarkHighlighted(animatedResultButton.getCurrentId());
+                        ClientPlayNetworkHandler networkHandler = MinecraftClient.getInstance().getNetworkHandler();
+                        networkHandler.sendPacket(new RecipeBookDataC2SPacket(animatedResultButton.getCurrentId()));*/
+                    }
+                }
+
+                cir.setReturnValue(true);
+                cir.cancel();
+            }
+        }
+
+    }
+
+    @Final
+    @Shadow
+    private List<RecipeDisplayListener> recipeDisplayListeners;
+
+
+    @Unique
+    private boolean canDisplay(Recipe<?> display) {
+
+        AbstractRecipeScreenHandler<?> handler = null;
+
+        for(RecipeDisplayListener recipeDisplayListener : this.recipeDisplayListeners) {
+            handler = ((RecipeBookWidgetAccessor) recipeDisplayListener).getCraftingScreenHandler();
+        }
+
+     return display.fits(handler.getCraftingWidth(),handler.getCraftingHeight());
+
+    }
+
+}

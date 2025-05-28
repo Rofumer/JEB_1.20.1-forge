@@ -1,0 +1,25 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "jeb.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "refmap": "jeb.refmap.json",
+  "mixins": [
+  ],
+  "client": [
+    "AnimatedResultButtonMixin",
+    "ClientPlayNetworkHandlerMixin",
+    "ClientRecipeBookMixin",
+    "RecipeAlternativesWidgetMixin",
+    "RecipeBookGroupMixin",
+    "RecipeBookResultsAccessor",
+    "RecipeBookResultsMixin",
+    "RecipeBookWidgetAccessor",
+    "RecipeBookWidgetSearchMixin",
+    "RecipeGroupButtonWidgetMixin",
+    "RecipeResultCollectionMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
