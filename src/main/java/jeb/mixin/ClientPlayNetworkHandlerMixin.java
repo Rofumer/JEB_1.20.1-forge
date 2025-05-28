@@ -1,13 +1,13 @@
 package jeb.mixin;
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.screen.recipebook.RecipeResultCollection;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.client.recipebook.RecipeBookGroup;
-import net.minecraft.item.ItemStack;
-import net.minecraft.network.packet.s2c.play.SynchronizeRecipesS2CPacket;
-import net.minecraft.recipe.Recipe;
-import net.minecraft.recipe.book.RecipeBook;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.recipebook.RecipeCollection;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.network.protocol.game.ClientboundUpdateRecipesPacket;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.client.ClientRecipeBook;
+import net.minecraft.client.RecipeBookCategories;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -18,27 +18,27 @@ import java.util.List;
 
 import static jeb.client.JEBClient.existingResultItems;
 
-@Mixin(ClientPlayNetworkHandler.class)
+@Mixin(ClientPacketListener.class)
 public abstract class ClientPlayNetworkHandlerMixin {
 
-    @Inject(method = "onSynchronizeRecipes", at = @At("TAIL"))
-    private void onSyncRecipes(SynchronizeRecipesS2CPacket packet, CallbackInfo ci) {
-        MinecraftClient mc = MinecraftClient.getInstance();
-        RecipeBook book = mc.player.getRecipeBook();
+    @Inject(method = "handleUpdateRecipes", at = @At("TAIL"))
+    private void onSyncRecipes(ClientboundUpdateRecipesPacket p_105132_, CallbackInfo ci) {
+        Minecraft mc = Minecraft.getInstance();
+        ClientRecipeBook book = mc.player.getRecipeBook();
 
-        List<RecipeResultCollection> originalList;
+        List<RecipeCollection> originalList;
 
         originalList = new ArrayList<>();
 
-        for (RecipeBookGroup group : RecipeBookGroup.CRAFTING) {
-            originalList.addAll(mc.player.getRecipeBook().getResultsForGroup(group));
+        for (RecipeBookCategories group : RecipeBookCategories.CRAFTING_CATEGORIES) {
+            originalList.addAll(mc.player.getRecipeBook().getCollection(group));
         }
 
 
-        for (RecipeResultCollection collection : originalList) {
+        for (RecipeCollection collection : originalList) {
 
-            for (Recipe<?> entry : collection.getAllRecipes()) {
-                ItemStack stack = entry.getOutput(mc.world.getRegistryManager());
+            for (Recipe<?> entry : collection.getRecipes()) {
+                ItemStack stack = entry.getResultItem(mc.level.registryAccess());
                 if (!stack.isEmpty()) {
                     existingResultItems.add(stack.getItem());
                 }

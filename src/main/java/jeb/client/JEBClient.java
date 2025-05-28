@@ -14,7 +14,6 @@ import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.recipebook.RecipeBookGroup;
 import net.minecraft.client.util.InputUtil;
 import net.minecraft.inventory.RecipeInputInventory;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.recipe.CraftingRecipe;
@@ -32,6 +31,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.world.World;
+import net.minecraft.world.item.Item;
 import org.lwjgl.glfw.GLFW;
 import net.minecraft.client.item.TooltipContext;
 
