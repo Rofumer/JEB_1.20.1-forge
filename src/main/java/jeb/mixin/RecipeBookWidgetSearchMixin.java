@@ -4,28 +4,23 @@ import jeb.accessor.AnimatedResultButtonExtension;
 import jeb.accessor.RecipeBookWidgetBridge;
 import jeb.client.FavoritesManager;
 import jeb.client.JEBClient;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.recipebook.*;
-import net.minecraft.client.gui.tooltip.Tooltip;
-import net.minecraft.client.gui.widget.ToggleButtonWidget;
-import net.minecraft.client.item.TooltipContext;
-import net.minecraft.client.recipebook.RecipeBookGroup;
-import net.minecraft.recipe.Ingredient;
-import net.minecraft.recipe.Recipe;
-import net.minecraft.recipe.RecipeManager;
-import net.minecraft.recipe.RecipeMatcher;
-import net.minecraft.screen.ScreenHandler;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
-import net.minecraft.util.Identifier;
+import net.minecraft.client.ClientRecipeBook;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.RecipeBookCategories;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.StateSwitchingButton;
+import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.recipebook.*;
 import com.google.common.collect.Lists;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.network.ClientPlayNetworkHandler;
-import net.minecraft.client.recipebook.ClientRecipeBook;
-import net.minecraft.item.ItemStack;
-import net.minecraft.registry.Registries;
-import net.minecraft.screen.AbstractRecipeScreenHandler;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.inventory.RecipeBookMenu;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeManager;
 import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -38,50 +33,51 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.*;
 
-@Mixin(RecipeBookWidget.class)
+
+@Mixin(RecipeBookComponent.class)
 //public abstract class RecipeBookWidgetSearchMixin<T extends AbstractRecipeScreenHandler> implements RecipeBookWidgetBridge {
 public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBridge {
 
     // Это будет вызов приватного метода
     @Shadow
-    public void refresh() {}
+    public void recipesUpdated() {}
 
     @Override
     public void jeb$refresh() {
-        this.refresh();
+        this.recipesUpdated();
     }
 
     @Shadow
-    private ClientRecipeBook recipeBook;
+    private ClientRecipeBook book;
 
     @Shadow
-    private RecipeGroupButtonWidget currentTab;
+    private RecipeBookTabButton selectedTab;
 
     @Shadow
-    protected MinecraftClient client;
+    protected Minecraft minecraft;
 
     @Final
     @Shadow
-    private RecipeBookResults recipesArea;
+    private RecipeBookPage recipeBookPage;
 
     @Shadow
-    private TextFieldWidget searchField;
+    private EditBox searchBox;
 
     @Shadow
     @Final
-    private List<RecipeGroupButtonWidget> tabButtons;
+    private List<RecipeBookTabButton> tabButtons;
 
     @Shadow
-    protected ToggleButtonWidget toggleCraftableButton;
+    protected StateSwitchingButton filterButton;
 
     @Unique
-    private ToggleButtonWidget jeb$customToggleButton;
+    private StateSwitchingButton jeb$customToggleButton;
 
     @Unique
     private boolean jeb$customToggleState = false;
 
     @Shadow
-    protected AbstractRecipeScreenHandler<?> craftingScreenHandler;
+    protected RecipeBookMenu<?> menu;
 
     /*
     @Unique
@@ -98,28 +94,28 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
 
 
 
-    @Inject(method = "reset", at = @At("TAIL"))
+    @Inject(method = "initVisuals", at = @At("TAIL"))
     private void jeb$addCustomToggleButton(CallbackInfo ci) {
-        int x = this.toggleCraftableButton.getX();
-        int y = this.toggleCraftableButton.getY()+120;
+        int x = this.filterButton.getX();
+        int y = this.filterButton.getY()+120;
 
-        jeb$customToggleButton = new ToggleButtonWidget(x, y, 24, 24, false);
+        jeb$customToggleButton = new StateSwitchingButton(x, y, 24, 24, false);
         if(JEBClient.customToggleEnabled){
-            jeb$customToggleButton.setTooltip(Tooltip.of(Text.of("Show 3x3")));
-            jeb$customToggleButton.setTextureUV(
+            jeb$customToggleButton.setTooltip(Tooltip.create(Component.literal("3x3")));
+            jeb$customToggleButton.initTextureValues(
                     152, 78, 26, 26,           // pressedUOffset (сдвиг по X при активном состоянии), hoverVOffset (сдвиг по Y при наведении)
-                    new Identifier("minecraft", "textures/gui/recipe_book.png")  // текстура
+                    ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/recipe_book.png")  // текстура
             );
         }
         else
         {
-            jeb$customToggleButton.setTooltip(Tooltip.of(Text.of("Show 2x2")));
-            jeb$customToggleButton.setTextureUV(
+            jeb$customToggleButton.setTooltip(Tooltip.create(Component.literal("2x2")));
+            jeb$customToggleButton.initTextureValues(
                     152, 78, 26, 26,           // pressedUOffset (сдвиг по X при активном состоянии), hoverVOffset (сдвиг по Y при наведении)
-                    new Identifier("minecraft", "textures/gui/recipe_book.png")  // текстура
+                    ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/recipe_book.png")
             );
         }
-        jeb$customToggleButton.setMessage(Text.of("!"));
+        jeb$customToggleButton.setMessage(Component.literal("!"));
         jeb$customToggleButton.visible = true;
 
     }
@@ -128,14 +124,14 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
             method = "render",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/gui/widget/ToggleButtonWidget;render(Lnet/minecraft/client/gui/DrawContext;IIF)V",
+                    target = "Lnet/minecraft/client/gui/components/StateSwitchingButton;render(Lnet/minecraft/client/gui/GuiGraphics;IIF)V",
                     ordinal = 0, // если их несколько, выбирай нужный
                     shift = At.Shift.AFTER
             )
     )
-    private void jeb$renderCustomToggle(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
+    private void jeb$renderCustomToggle(GuiGraphics p_283597_, int p_282668_, int p_283506_, float p_282813_, CallbackInfo ci) {
         if (jeb$customToggleButton != null && jeb$customToggleButton.visible) {
-            jeb$customToggleButton.render(context, mouseX, mouseY, delta);
+            jeb$customToggleButton.render(p_283597_, p_282668_, p_283506_, p_282813_);
         }
     }
 
@@ -144,27 +140,27 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
     private void jeb$clickCustomToggle(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
         if (jeb$customToggleButton != null && jeb$customToggleButton.mouseClicked(mouseX, mouseY, button)) {
             jeb$customToggleState = !jeb$customToggleState;
-            jeb$customToggleButton.setToggled(jeb$customToggleState);
+            jeb$customToggleButton.setStateTriggered(jeb$customToggleState);
             JEBClient.customToggleEnabled = !JEBClient.customToggleEnabled;
 
             JEBClient.saveConfig();
             // Меняем текстуру в зависимости от состояния
             //jeb$customToggleButton.setTextures(JEBClient.customToggleEnabled ? TEXTURES_ALT : TEXTURES_DEFAULT);
             if(JEBClient.customToggleEnabled){
-                jeb$customToggleButton.setTextureUV(
+                jeb$customToggleButton.initTextureValues(
                         152, 78, 26, 26,           // pressedUOffset (сдвиг по X при активном состоянии), hoverVOffset (сдвиг по Y при наведении)
-                        new Identifier("minecraft", "textures/gui/recipe_book.png")  // текстура
+                        ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/recipe_book.png")
                 );
             }
             else
             {
-                jeb$customToggleButton.setTextureUV(
-                        152, 78, 26, 26,           // pressedUOffset (сдвиг по X при неактивном состоянии), hoverVOffset (сдвиг по Y при наведении)
-                        new Identifier("minecraft", "textures/gui/recipe_book.png")  // текстура
+                jeb$customToggleButton.initTextureValues(
+                        152, 78, 26, 26,           // pressedUOffset (сдвиг по X при активном состоянии), hoverVOffset (сдвиг по Y при наведении)
+                        ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/recipe_book.png")
                 );
             }
 
-            jeb$customToggleButton.setTooltip(JEBClient.customToggleEnabled ? Tooltip.of(Text.of("Show 3x3")):Tooltip.of(Text.of("Show 2x2")));
+            jeb$customToggleButton.setTooltip(JEBClient.customToggleEnabled ? (Tooltip.create(Component.literal("3x3"))):(Tooltip.create(Component.literal("2x2"))));
 
             //System.out.println("Кастомная кнопка: " + (jeb$customToggleState ? "включена" : "выключена"));
 
@@ -262,7 +258,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
         //return currentTab != null
         //        && currentTab.getMessage() != null
         //        && "Favorites".equals(currentTab.getMessage().getString());
-        return currentTab.getCategory() == RecipeBookGroup.CAMPFIRE;
+        return selectedTab.getCategory() == RecipeBookCategories.CAMPFIRE;
     }
 
 
@@ -270,12 +266,12 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
     private void onKeyPressed(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
         // Проверка на нужную клавишу (например, клавиша G, keyCode = 71)
         if (keyCode == GLFW.GLFW_KEY_A) {
-            AnimatedResultButton hovered = ((RecipeBookResultsAccessor) recipesArea).getHoveredResultButton();
+            RecipeButton hovered = ((RecipeBookResultsAccessor) recipeBookPage).getHoveredResultButton();
             if (hovered != null) {
                 //System.out.println("Над кнопкой: " + hovered.getDisplayStack().getItem().toString());
                 //ItemStack stack = hovered.getDisplayStack();
                 if (isFavoritesTabActive()) {
-                    FavoritesManager.removeFavorite(hovered.currentRecipe().getOutput(hovered.getResultCollection().getRegistryManager()));
+                    FavoritesManager.removeFavorite(hovered.getRecipe().getResultItem(hovered.getCollection().registryAccess()));
                     // Рефреш через reflection
                     /*try {
                         Method method = RecipeBookWidget.class.getDeclaredMethod("refresh");
@@ -286,7 +282,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
                     }*/
                     ((RecipeBookWidgetBridge) this).jeb$refresh();
                 } else {
-                    FavoritesManager.saveFavorite(hovered.currentRecipe().getOutput(hovered.getResultCollection().getRegistryManager()));
+                    FavoritesManager.saveFavorite(hovered.getRecipe().getResultItem(hovered.getCollection().registryAccess()));
                 }
                 //FavoritesManager.saveFavorite(stack);
                 ((AnimatedResultButtonExtension) hovered).jeb$flash();
@@ -298,28 +294,28 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
 
     @Inject(method = "mouseClicked", at = @At(
             value = "INVOKE",
-            target = "Lnet/minecraft/client/network/ClientPlayerInteractionManager;clickRecipe(ILnet/minecraft/recipe/Recipe;Z)V",
+            target = "Lnet/minecraft/client/multiplayer/MultiPlayerGameMode;handlePlaceRecipe(ILnet/minecraft/world/item/crafting/Recipe;Z)V",
             shift = At.Shift.AFTER
     ))
     private void onRecipeClicked(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
 
-        RecipeManager recipeManager = client.world.getRecipeManager();
+        RecipeManager recipeManager = client.level.getRecipeManager();
 
 
-        Recipe<?> recipe = this.recipesArea.getLastClickedRecipe();
+        Recipe<?> recipe = this.recipeBookPage.getLastClickedRecipe();
 
-        RecipeResultCollection collection = this.recipesArea.getLastClickedResults();
+        RecipeCollection collection = this.recipeBookPage.getLastClickedRecipeCollection();
 
-        ScreenHandler screenHandler = client.player.currentScreenHandler;
+        Screen screenHandler = client.screen;
 
-        if(collection != null && recipe != null && screenHandler != null && !collection.hasCraftableRecipes()) {
-            recipeManager.get(recipe.getId()).ifPresent(recipe1 -> {
-                if (this.client.currentScreen instanceof RecipeBookProvider) {
-                    RecipeBookWidget recipeBookWidget = ((RecipeBookProvider) this.client.currentScreen).getRecipeBookWidget();
-                    recipeBookWidget.showGhostRecipe(recipe1, (List) screenHandler.slots);
+        if(collection != null && recipe != null && screenHandler != null && !collection.hasCraftable()) {
+            recipeManager.byKey(recipe.getId()).ifPresent((recipe1 -> {
+                if (screenHandler   instanceof RecipeUpdateListener) {
+                    RecipeBookComponent recipeBookWidget = ((RecipeUpdateListener) client.screen).getRecipeBookComponent();
+                    recipeBookWidget.setupGhostRecipe(recipe1, (List) screenHandler.renderables);
                 }
-            });
+            }));
         }
 
 
@@ -369,8 +365,8 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
         query = query.toLowerCase(Locale.ROOT);
 
         for (Ingredient ingredient : recipe.getIngredients()) {
-            for (ItemStack stack : ingredient.getMatchingStacks()) {
-                String itemName = stack.getItem().getName().getString().toLowerCase(Locale.ROOT);
+            for (ItemStack stack : ingredient.getItems()) {
+                String itemName = stack.getItem().asItem().toString().toLowerCase(Locale.ROOT);
                 if (itemName.contains(query)) {
                     return true;
                 }
@@ -550,7 +546,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
 
     @Unique
     private boolean recipeResultMatchesQuery(Recipe<?> recipe, String query, String modName) {
-        if (recipe == null || recipe.getOutput(this.client.world.getRegistryManager()) == null || recipe.getOutput(this.client.world.getRegistryManager()).isEmpty()) {
+        if (recipe == null || recipe.getResultItem(client.world.getRegistryManager()) == null || recipe.getOutput(this.client.world.getRegistryManager()).isEmpty()) {
             return false;
         }
 

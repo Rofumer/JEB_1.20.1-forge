@@ -1,30 +1,33 @@
 package jeb.mixin;
 
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screen.recipebook.RecipeBookWidget;
+import net.minecraft.client.gui.screens.recipebook.RecipeBookComponent;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.client.recipebook.ClientRecipeBook;
 import net.minecraft.recipe.RecipeMatcher;
 import net.minecraft.recipe.book.RecipeBook;
 import net.minecraft.screen.AbstractRecipeScreenHandler;
+import net.minecraft.world.inventory.RecipeBookMenu;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 import org.spongepowered.asm.mixin.gen.Invoker;
 
 import java.util.List;
 
-@Mixin(RecipeBookWidget.class)
+@Mixin(RecipeBookComponent.class)
 public interface RecipeBookWidgetAccessor {
     @Invoker("reset")
     void invokeReset();
 
-    @Accessor("searchField")
-    TextFieldWidget getSearchField();
+    @Accessor("searchBox")
+    EditBox getSearchField();
     @Accessor("tabButtons")
     List<?> getTabButtons();
     @Accessor("recipeFinder")
     RecipeMatcher getRecipeFinder();
-    @Accessor("craftingScreenHandler")
-    AbstractRecipeScreenHandler<?> getCraftingScreenHandler();
+    @Accessor("menu")
+    RecipeBookMenu<?> getCraftingScreenHandler();
     @Accessor("recipeBook")
     ClientRecipeBook getRecipeBook();
 

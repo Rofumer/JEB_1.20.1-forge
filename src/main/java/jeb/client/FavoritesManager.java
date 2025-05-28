@@ -1,11 +1,9 @@
 package jeb.client;
 
 import com.google.gson.*;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.item.ItemStack;
+
 
 import java.io.FileWriter;
 import java.nio.file.Files;
