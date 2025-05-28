@@ -1,13 +1,9 @@
 package jeb.mixin;
 
+import net.minecraft.client.ClientRecipeBook;
 import net.minecraft.client.gui.components.EditBox;
-import net.minecraft.client.gui.screen.recipebook.RecipeBookWidget;
 import net.minecraft.client.gui.screens.recipebook.RecipeBookComponent;
-import net.minecraft.client.gui.widget.TextFieldWidget;
-import net.minecraft.client.recipebook.ClientRecipeBook;
-import net.minecraft.recipe.RecipeMatcher;
-import net.minecraft.recipe.book.RecipeBook;
-import net.minecraft.screen.AbstractRecipeScreenHandler;
+import net.minecraft.world.entity.player.StackedContents;
 import net.minecraft.world.inventory.RecipeBookMenu;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
@@ -17,18 +13,19 @@ import java.util.List;
 
 @Mixin(RecipeBookComponent.class)
 public interface RecipeBookWidgetAccessor {
-    @Invoker("reset")
+    @Invoker("initVisuals")
     void invokeReset();
+
 
     @Accessor("searchBox")
     EditBox getSearchField();
     @Accessor("tabButtons")
     List<?> getTabButtons();
-    @Accessor("recipeFinder")
-    RecipeMatcher getRecipeFinder();
+    @Accessor("stackedContents")
+    StackedContents getRecipeFinder();
     @Accessor("menu")
     RecipeBookMenu<?> getCraftingScreenHandler();
-    @Accessor("recipeBook")
+    @Accessor("book")
     ClientRecipeBook getRecipeBook();
 
     /*@Accessor("tabs")

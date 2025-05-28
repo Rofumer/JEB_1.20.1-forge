@@ -1,7 +1,11 @@
 package jeb.client;
 
 import com.google.gson.*;
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
 
 
@@ -12,11 +16,11 @@ import java.nio.file.Paths;
 import java.util.*;
 
 public class FavoritesManager {
-    private static final Path FAVORITES_PATH = Paths.get(MinecraftClient.getInstance().runDirectory.getAbsolutePath(), "config", "JEBfavorites.json");
+    private static final Path FAVORITES_PATH = Paths.get(Minecraft.getInstance().gameDirectory.getAbsolutePath(), "config", "JEBfavorites.json");
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 
-    public static Set<Identifier> loadFavoriteItemIds() {
-        Set<Identifier> result = new HashSet<>();
+    public static Set<ResourceLocation> loadFavoriteItemIds() {
+        Set<ResourceLocation> result = new HashSet<>();
         try {
             if (!Files.exists(FAVORITES_PATH)) return result;
 
@@ -26,7 +30,7 @@ public class FavoritesManager {
             for (JsonElement el : array) {
                 JsonObject obj = el.getAsJsonObject();
                 if (server.equals(obj.get("server").getAsString())) {
-                    result.add(new Identifier(obj.get("item").getAsString()));
+                    result.add(ResourceLocation.bySeparator(obj.get("item").getAsString(), ':'));
                 }
             }
 
@@ -40,7 +44,7 @@ public class FavoritesManager {
     public static void removeFavorite(ItemStack stack) {
         try {
             String server = getServerName();
-            Identifier itemId = Registries.ITEM.getId(stack.getItem());
+            ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
             String nbtString = getSerializedNbt(stack);
 
             if (!Files.exists(FAVORITES_PATH)) return;
@@ -76,7 +80,7 @@ public class FavoritesManager {
     public static void saveFavorite(ItemStack stack) {
         try {
             String server = getServerName();
-            Identifier itemId = Registries.ITEM.getId(stack.getItem());
+            ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
             String nbtString = getSerializedNbt(stack);
 
             JsonArray favorites = Files.exists(FAVORITES_PATH)
@@ -135,11 +139,11 @@ public class FavoritesManager {
     }
 
     private static String getServerName() {
-        MinecraftClient client = MinecraftClient.getInstance();
-        if (client.getCurrentServerEntry() != null) {
-            return client.getCurrentServerEntry().address;
-        } else if (client.getServer() != null) {
-            return client.getServer().getSaveProperties().getLevelName();
+        Minecraft client = Minecraft.getInstance();
+        if (client.getCurrentServer() != null) {
+            return client.getCurrentServer().ip;
+        } else if (client.getSingleplayerServer() != null) {
+            return client.getSingleplayerServer().getWorldData().getLevelName();
         } else {
             return "unknown_local_world";
         }
@@ -147,7 +151,7 @@ public class FavoritesManager {
 
 
     private static String getSerializedNbt(ItemStack stack) {
-        NbtCompound tag = stack.getNbt();
+        CompoundTag tag = stack.getTag();
         return (tag != null && !tag.isEmpty()) ? tag.toString() : "";
     }
 

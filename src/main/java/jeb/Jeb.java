@@ -2,6 +2,7 @@ package jeb;
 
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.recipebook.RecipeCollection;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.food.FoodProperties;
 import net.minecraft.world.item.BlockItem;
@@ -29,9 +30,22 @@ import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.RegistryObject;
 import org.slf4j.Logger;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 // The value here should match an entry in the META-INF/mods.toml file
 @Mod(Jeb.MODID)
 public class Jeb {
+
+    public static Set<Item> existingResultItems = new HashSet<>();
+
+    public static boolean recipesLoaded = false;
+
+    public static boolean customToggleEnabled = true;
+
+    public static List<RecipeCollection> PREGENERATED_RECIPES;
+
 
     // Define mod id in a common place for everything to reference
     public static final String MODID = "jeb";

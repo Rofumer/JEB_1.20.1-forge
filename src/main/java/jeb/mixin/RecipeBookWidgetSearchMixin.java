@@ -14,13 +14,19 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.recipebook.*;
 import com.google.common.collect.Lists;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.StackedContents;
 import net.minecraft.world.inventory.RecipeBookMenu;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.crafting.Ingredient;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraftforge.common.util.RecipeMatcher;
 import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -66,6 +72,11 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
     @Shadow
     @Final
     private List<RecipeBookTabButton> tabButtons;
+
+
+    //@Shadow
+    //private RecipeBookTabButton selectedTab;
+
 
     @Shadow
     protected StateSwitchingButton filterButton;
@@ -546,55 +557,65 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
 
     @Unique
     private boolean recipeResultMatchesQuery(Recipe<?> recipe, String query, String modName) {
-        if (recipe == null || recipe.getResultItem(client.world.getRegistryManager()) == null || recipe.getOutput(this.client.world.getRegistryManager()).isEmpty()) {
+        if (recipe == null || recipe.getResultItem(minecraft.level.registryAccess()) == null || recipe.getResultItem(minecraft.level.registryAccess()).isEmpty()) {
             return false;
         }
 
-        ItemStack stack = recipe.getOutput(this.client.world.getRegistryManager());
+        ItemStack stack = recipe.getResultItem(minecraft.level.registryAccess());
         if (stack == null || stack.isEmpty()) return false;
 
-        MinecraftClient client = MinecraftClient.getInstance();
+        Minecraft client = Minecraft.getInstance();
 
-        String name = stack.getName().getString().toLowerCase(Locale.ROOT);
+        String name = stack.getDisplayName().getString().toLowerCase(Locale.ROOT);
         String id = stack.getItem().toString().toLowerCase(Locale.ROOT);
-        String key = stack.getItem().getTranslationKey().toLowerCase(Locale.ROOT);
+        String key = "";
+        Component nameComponent = stack.getHoverName(); // или getDisplayName()
+        if (nameComponent.getContents() instanceof TranslatableContents translatable) {
+            key = translatable.getKey().toLowerCase(Locale.ROOT);
+        }
+
 
         // Проверка на имя мода
-        if (modName != null && !modName.isEmpty()) {
-            Identifier itemId = Registries.ITEM.getId(stack.getItem());
-            if (!itemId.getNamespace().toLowerCase(Locale.ROOT).contains(modName.toLowerCase(Locale.ROOT))) {
-                return false;
-            }
+        if (modName != null && !modName.isEmpty() && !BuiltInRegistries.ITEM.getKey(stack.getItem()).getNamespace().contains(modName)) {
+            return false;  // Не принадлежит указанному моду
         }
+
 
         // Поиск по имени, ID или translationKey
         if (name.contains(query) || id.contains(query) || key.contains(query)) {
             return true;
         }
 
-        // Поиск по tooltip'у
+        // Поиск по тултипам
+        TooltipFlag tooltipFlag = minecraft.options.advancedItemTooltips ? TooltipFlag.Default.ADVANCED : TooltipFlag.Default.NORMAL;
+
+
+
         try {
-            List<Text> tooltip = stack.getTooltip(client.player, client.options.advancedItemTooltips ? (TooltipContext)TooltipContext.Default.ADVANCED : (TooltipContext)TooltipContext.Default.BASIC);
-            for (Text line : tooltip) {
-                String clean = Formatting.strip(line.getString()).toLowerCase(Locale.ROOT).trim();
+            List<Component> tooltip = stack.getTooltipLines(minecraft.player, tooltipFlag);
+
+            for (Component line : tooltip) {
+                String clean = net.minecraft.ChatFormatting.stripFormatting(line.getString()).toLowerCase(Locale.ROOT).trim();
                 if (clean.contains(query)) return true;
             }
         } catch (Exception e) {
             e.printStackTrace();
+            // Можно также записать лог или безопасно проигнорировать ошибку
         }
 
         return false;
+
     }
 
 
-    @Shadow
-    private final RecipeMatcher recipeFinder = new RecipeMatcher();
+    ///@Shadow
+    ///private final RecipeMatcher recipeFinder = new RecipeMatcher();
 
-    @Shadow public abstract void reset();
+    ///@Shadow public abstract void reset();
 
-    @Inject(method = "refreshResults", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "updateCollections", at = @At("HEAD"), cancellable = true)
     private void onCustomSearch(boolean resetCurrentPage, CallbackInfo ci) {
-        String string = searchField.getText();
+        String string = searchBox.getValue();
         boolean searchIngredients = string.startsWith("#");
         String query = (searchIngredients ? string.substring(1) : string).toLowerCase();
 
@@ -610,32 +631,32 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
             }
         }
 
-        ClientPlayNetworkHandler handler = client.getNetworkHandler();
-        if (handler == null) return;
+        ///ClientPlayNetworkHandler handler = client.getNetworkHandler();
+        ///if (handler == null) return;
 
-        List<RecipeResultCollection> originalList = recipeBook.getResultsForGroup(currentTab.getCategory());
-        List<RecipeResultCollection> filteredList = Lists.newArrayList();
+        List<RecipeCollection> originalList = book.getCollection(selectedTab.getCategory());
+        List<RecipeCollection> filteredList = Lists.newArrayList();
         // === Если на вкладке избранного (используем CAMPFIRE как временную категорию) ===
         if (isFavoritesTabActive()) {
             originalList = new ArrayList<>();
 
             //for (RecipeBookGroup group : RecipeBookGroup.CRAFTING) {
                 //originalList.addAll(recipeBook.getResultsForGroup(group));
-            originalList.addAll(recipeBook.getResultsForGroup(RecipeBookGroup.CRAFTING_SEARCH));
+            originalList.addAll(book.getCollection(RecipeBookCategories.CRAFTING_SEARCH));
             //}
 
-            Set<Identifier> favoriteItems = FavoritesManager.loadFavoriteItemIds();
+            Set<ResourceLocation> favoriteItems = FavoritesManager.loadFavoriteItemIds();
 
-            List<RecipeResultCollection> matching = null;
-            for (RecipeResultCollection collection : originalList) {
+            List<RecipeCollection> matching = null;
+            for (RecipeCollection collection : originalList) {
 
                 matching = new ArrayList<>();
-                for (Recipe<?> entry : collection.getAllRecipes()) {
-                    ItemStack stack = entry.getOutput(this.client.world.getRegistryManager());
+                for (Recipe<?> entry : collection.getRecipes()) {
+                    ItemStack stack = entry.getResultItem(minecraft.level.registryAccess());
                     if (!stack.isEmpty()) {
-                        Identifier itemId = Registries.ITEM.getId(stack.getItem());
+                        ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
                         if (favoriteItems.contains(itemId)) {
-                            matching.add(new RecipeResultCollection(this.client.world.getRegistryManager(),List.of(entry)));
+                            matching.add(new RecipeCollection(minecraft.level.registryAccess(),List.of(entry)));
                         }
                     }
                 }
@@ -655,17 +676,17 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
             //}
 
             ///recipesArea.setResults(filteredList, resetCurrentPage, filteringCraftable);
-            recipesArea.setResults(filteredList, resetCurrentPage);
+            recipeBookPage.updateCollections(filteredList, resetCurrentPage);
             ci.cancel();
             return;
         }
 
         // === Обычный поиск ===
-        for (RecipeResultCollection collection : originalList) {
+        for (RecipeCollection collection : originalList) {
 
-            if (!collection.hasFittingRecipes()) continue;
+            if (!collection.hasFitting()) continue;
 
-            for (Recipe<?> entry : collection.getAllRecipes()) {
+            for (Recipe<?> entry : collection.getRecipes()) {
 
                 boolean match;
                 if (searchIngredients) {
@@ -680,17 +701,22 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
             }
         }
 
-        filteredList.forEach((resultCollection) -> resultCollection.computeCraftables(this.recipeFinder, this.craftingScreenHandler.getCraftingWidth(), this.craftingScreenHandler.getCraftingHeight(), this.recipeBook));
+
+        ///@Shadow public abstract void reset();
+
+       StackedContents contents = ((RecipeBookWidgetAccessor)(Object)this).getRecipeFinder();
+
+        filteredList.forEach((resultCollection) -> resultCollection.canCraft(contents , ((RecipeBookWidgetAccessor) this).getCraftingScreenHandler().getGridWidth(), ((RecipeBookWidgetAccessor) this).getCraftingScreenHandler().getGridHeight(), book));
 
         if(jeb$customToggleState) {
-            filteredList.removeIf((resultCollection) -> !resultCollection.hasFittingRecipes());
+            filteredList.removeIf((resultCollection) -> !resultCollection.hasFitting());
         }
 
-        if (this.recipeBook.isFilteringCraftable(craftingScreenHandler)) {
-            filteredList.removeIf(rc -> !rc.hasCraftableRecipes());
+        if (book.isFiltering(menu)) {
+            filteredList.removeIf(rc -> !rc.hasCraftable());
         }
 
-        filteredList.addAll(JEBClient.generateCustomRecipeList(string));
+        ///////filteredList.addAll(JEBClient.generateCustomRecipeList(string));
 
         ///recipesArea.setResults(filteredList, resetCurrentPage, filteringCraftable);
         /*List<RecipeResultCollection> filteredList1 = Lists.newArrayList(filteredList);
@@ -702,7 +728,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
         if (this.recipeBook.isFilteringCraftable(craftingScreenHandler)) {
             filteredList1.removeIf(rc -> !rc.hasCraftableRecipes());
         }*/
-        recipesArea.setResults(filteredList, resetCurrentPage);
+        recipeBookPage.updateCollections(filteredList, resetCurrentPage);
         ci.cancel();
     }
 
