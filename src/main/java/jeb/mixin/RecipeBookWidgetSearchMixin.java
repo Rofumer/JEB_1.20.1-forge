@@ -116,7 +116,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
             jeb$customToggleButton.setTooltip(Tooltip.create(Component.literal("Show 3x3")));
             jeb$customToggleButton.initTextureValues(
                     152, 78, 26, 26,           // pressedUOffset (сдвиг по X при активном состоянии), hoverVOffset (сдвиг по Y при наведении)
-                    ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/recipe_book.png")  // текстура
+                    new ResourceLocation("minecraft", "textures/gui/recipe_book.png")  // текстура
             );
         }
         else
@@ -124,7 +124,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
             jeb$customToggleButton.setTooltip(Tooltip.create(Component.literal("Show 2x2")));
             jeb$customToggleButton.initTextureValues(
                     152, 78, 26, 26,           // pressedUOffset (сдвиг по X при активном состоянии), hoverVOffset (сдвиг по Y при наведении)
-                    ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/recipe_book.png")
+                    new ResourceLocation("minecraft", "textures/gui/recipe_book.png")
             );
         }
         jeb$customToggleButton.setMessage(Component.literal("!"));
@@ -161,14 +161,14 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
             if(Jeb.customToggleEnabled){
                 jeb$customToggleButton.initTextureValues(
                         152, 78, 26, 26,           // pressedUOffset (сдвиг по X при активном состоянии), hoverVOffset (сдвиг по Y при наведении)
-                        ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/recipe_book.png")
+                        new ResourceLocation("minecraft", "textures/gui/recipe_book.png")
                 );
             }
             else
             {
                 jeb$customToggleButton.initTextureValues(
                         152, 78, 26, 26,           // pressedUOffset (сдвиг по X при активном состоянии), hoverVOffset (сдвиг по Y при наведении)
-                        ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/recipe_book.png")
+                        new ResourceLocation("minecraft", "textures/gui/recipe_book.png")
                 );
             }
 

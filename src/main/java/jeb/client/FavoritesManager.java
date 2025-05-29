@@ -30,7 +30,7 @@ public class FavoritesManager {
             for (JsonElement el : array) {
                 JsonObject obj = el.getAsJsonObject();
                 if (server.equals(obj.get("server").getAsString())) {
-                    result.add(ResourceLocation.bySeparator(obj.get("item").getAsString(), ':'));
+                    result.add(new ResourceLocation(obj.get("item").getAsString()));
                 }
             }
 
