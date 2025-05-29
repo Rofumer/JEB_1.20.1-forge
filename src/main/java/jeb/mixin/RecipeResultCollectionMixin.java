@@ -1,6 +1,6 @@
 package jeb.mixin;
 
-import jeb.client.JEBClient;
+import jeb.Jeb;
 import net.minecraft.client.gui.screens.recipebook.RecipeCollection;
 import net.minecraft.stats.RecipeBook;
 import net.minecraft.world.entity.player.StackedContents;
@@ -41,7 +41,7 @@ public abstract class RecipeResultCollectionMixin {
             // оригинальное условие
             boolean bl = recipe.canCraftInDimensions(p_100503_, p_100504_) && p_100505_.contains(recipe);
 
-            if (JEBClient.customToggleEnabled) {
+            if (Jeb.customToggleEnabled) {
                 // твоя дополнительная строка
                 bl = p_100505_.contains(recipe);
             }
@@ -65,7 +65,7 @@ public abstract class RecipeResultCollectionMixin {
 
 
 
-    @Inject(method = "hasKnownRecipes", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "hasFitting", at = @At("HEAD"), cancellable = true)
     private void showAllRecipes(CallbackInfoReturnable<Boolean> cir) {
         // Принудительно возвращаем true, чтобы рецепт считался отображаемым
         cir.setReturnValue(true);

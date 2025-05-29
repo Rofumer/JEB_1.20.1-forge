@@ -3,7 +3,7 @@ package jeb.mixin;
 import jeb.accessor.AnimatedResultButtonExtension;
 import jeb.accessor.RecipeBookWidgetBridge;
 import jeb.client.FavoritesManager;
-import jeb.client.JEBClient;
+import jeb.Jeb;
 import net.minecraft.client.ClientRecipeBook;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.RecipeBookCategories;
@@ -20,6 +20,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.StackedContents;
+import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.RecipeBookMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -111,8 +112,8 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
         int y = this.filterButton.getY()+120;
 
         jeb$customToggleButton = new StateSwitchingButton(x, y, 24, 24, false);
-        if(JEBClient.customToggleEnabled){
-            jeb$customToggleButton.setTooltip(Tooltip.create(Component.literal("3x3")));
+        if(Jeb.customToggleEnabled){
+            jeb$customToggleButton.setTooltip(Tooltip.create(Component.literal("Show 3x3")));
             jeb$customToggleButton.initTextureValues(
                     152, 78, 26, 26,           // pressedUOffset (сдвиг по X при активном состоянии), hoverVOffset (сдвиг по Y при наведении)
                     ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/recipe_book.png")  // текстура
@@ -120,7 +121,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
         }
         else
         {
-            jeb$customToggleButton.setTooltip(Tooltip.create(Component.literal("2x2")));
+            jeb$customToggleButton.setTooltip(Tooltip.create(Component.literal("Show 2x2")));
             jeb$customToggleButton.initTextureValues(
                     152, 78, 26, 26,           // pressedUOffset (сдвиг по X при активном состоянии), hoverVOffset (сдвиг по Y при наведении)
                     ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/recipe_book.png")
@@ -147,17 +148,17 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
     }
 
 
-    @Inject(method = "mouseClicked", at = @At("TAIL"), cancellable = true)
+    @Inject(method = "mouseClicked", at = @At("RETURN"), cancellable = true)
     private void jeb$clickCustomToggle(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
         if (jeb$customToggleButton != null && jeb$customToggleButton.mouseClicked(mouseX, mouseY, button)) {
             jeb$customToggleState = !jeb$customToggleState;
             jeb$customToggleButton.setStateTriggered(jeb$customToggleState);
-            JEBClient.customToggleEnabled = !JEBClient.customToggleEnabled;
+            Jeb.customToggleEnabled = !Jeb.customToggleEnabled;
 
-            JEBClient.saveConfig();
+            Jeb.saveConfig();
             // Меняем текстуру в зависимости от состояния
             //jeb$customToggleButton.setTextures(JEBClient.customToggleEnabled ? TEXTURES_ALT : TEXTURES_DEFAULT);
-            if(JEBClient.customToggleEnabled){
+            if(Jeb.customToggleEnabled){
                 jeb$customToggleButton.initTextureValues(
                         152, 78, 26, 26,           // pressedUOffset (сдвиг по X при активном состоянии), hoverVOffset (сдвиг по Y при наведении)
                         ResourceLocation.fromNamespaceAndPath("minecraft", "textures/gui/recipe_book.png")
@@ -171,7 +172,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
                 );
             }
 
-            jeb$customToggleButton.setTooltip(JEBClient.customToggleEnabled ? (Tooltip.create(Component.literal("3x3"))):(Tooltip.create(Component.literal("2x2"))));
+            jeb$customToggleButton.setTooltip(Jeb.customToggleEnabled ? (Tooltip.create(Component.literal("Show 3x3"))):(Tooltip.create(Component.literal("Show 2x2"))));
 
             //System.out.println("Кастомная кнопка: " + (jeb$customToggleState ? "включена" : "выключена"));
 
@@ -322,9 +323,10 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
 
         if(collection != null && recipe != null && screenHandler != null && !collection.hasCraftable()) {
             recipeManager.byKey(recipe.getId()).ifPresent((recipe1 -> {
-                if (screenHandler   instanceof RecipeUpdateListener) {
+                if (screenHandler instanceof RecipeUpdateListener) {
                     RecipeBookComponent recipeBookWidget = ((RecipeUpdateListener) client.screen).getRecipeBookComponent();
-                    recipeBookWidget.setupGhostRecipe(recipe1, (List) screenHandler.renderables);
+                    AbstractContainerMenu menu = client.player.containerMenu;
+                    recipeBookWidget.setupGhostRecipe(recipe1, menu.slots);
                 }
             }));
         }
@@ -635,6 +637,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
         ///if (handler == null) return;
 
         List<RecipeCollection> originalList = book.getCollection(selectedTab.getCategory());
+        //List<RecipeCollection>originalList =book.getCollection(RecipeBookCategories.CRAFTING_SEARCH);
         List<RecipeCollection> filteredList = Lists.newArrayList();
         // === Если на вкладке избранного (используем CAMPFIRE как временную категорию) ===
         if (isFavoritesTabActive()) {
@@ -716,7 +719,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
             filteredList.removeIf(rc -> !rc.hasCraftable());
         }
 
-        ///////filteredList.addAll(JEBClient.generateCustomRecipeList(string));
+        filteredList.addAll(Jeb.generateCustomRecipeList(string));
 
         ///recipesArea.setResults(filteredList, resetCurrentPage, filteringCraftable);
         /*List<RecipeResultCollection> filteredList1 = Lists.newArrayList(filteredList);
