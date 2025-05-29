@@ -3,6 +3,7 @@ package jeb;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
+import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.logging.LogUtils;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -58,6 +59,9 @@ import java.util.*;
 public class Jeb {
 
     public static Set<Item> existingResultItems = new HashSet<>();
+    public static Set<Item> nonexistingResultItems = new HashSet<>();
+    public static String search = "-";
+    public static List<RecipeCollection> filtered = new ArrayList<>();
 
     public static boolean recipesLoaded = false;
 
@@ -124,9 +128,10 @@ public class Jeb {
             query = filter.toLowerCase();
         }
 
-        for (Item item : BuiltInRegistries.ITEM) {
+        //for (Item item : BuiltInRegistries.ITEM) {
+        for (Item item : nonexistingResultItems.toArray(new Item[0])) {
             if (item == Items.AIR) continue;
-            if (existingResultItems.contains(item)) continue;
+            //if (existingResultItems.contains(item)) continue;
 
 
             String name = item.getDefaultInstance().getDisplayName().getString().toLowerCase(Locale.ROOT);
@@ -330,9 +335,10 @@ public class Jeb {
     public static void onClientLogin(ClientPlayerNetworkEvent.LoggingIn event) {
         recipesLoaded = false;
         existingResultItems.clear();
+        nonexistingResultItems.clear();
     }
 
-    private static KeyMapping keyBinding;
+    /*private static KeyMapping keyBinding;
     public static KeyMapping keyBinding2;
 
     public void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
@@ -349,6 +355,21 @@ public class Jeb {
                 "JEB (Just Enough Book)"
         );
         event.register(keyBinding2);
+    }*/
+
+
+    @Mod.EventBusSubscriber(modid = "jeb", bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
+    public static class KeybindRegistry {
+        @SubscribeEvent
+        public static void onRegisterKeyMappings(RegisterKeyMappingsEvent event) {
+            ClientModEvents.FAVORITE_KEY = new KeyMapping(
+                    "Add/Remove Favorite Recipes",        // перевод будет в lang: key.jeb.favorite
+                    InputConstants.Type.KEYSYM,
+                    GLFW.GLFW_KEY_A,           // по умолчанию клавиша A
+                    "JEB (Just Enough Book)"   // категория для группировки
+            );
+            event.register(ClientModEvents.FAVORITE_KEY);
+        }
     }
 
 
@@ -370,6 +391,10 @@ public class Jeb {
     // You can use EventBusSubscriber to automatically register all static methods in the class annotated with @SubscribeEvent
     @Mod.EventBusSubscriber(modid = MODID, bus = Mod.EventBusSubscriber.Bus.MOD, value = Dist.CLIENT)
     public static class ClientModEvents {
+
+
+        public static final String CATEGORY = "key.categories.jeb";
+        public static KeyMapping FAVORITE_KEY;
 
 
         @SubscribeEvent

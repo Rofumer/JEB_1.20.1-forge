@@ -152,7 +152,8 @@ public class FavoritesManager {
 
     private static String getSerializedNbt(ItemStack stack) {
         CompoundTag tag = stack.getTag();
-        return (tag != null && !tag.isEmpty()) ? tag.toString() : "";
+        //return (tag != null && !tag.isEmpty()) ? tag.toString() : "";
+        return "";
     }
 
 

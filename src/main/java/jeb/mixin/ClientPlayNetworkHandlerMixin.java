@@ -3,8 +3,11 @@ package jeb.mixin;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.recipebook.RecipeCollection;
 import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.protocol.game.ClientboundUpdateRecipesPacket;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.client.ClientRecipeBook;
 import net.minecraft.client.RecipeBookCategories;
@@ -17,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static jeb.Jeb.existingResultItems;
+import static jeb.Jeb.nonexistingResultItems;
 
 @Mixin(ClientPacketListener.class)
 public abstract class ClientPlayNetworkHandlerMixin {
@@ -45,6 +49,14 @@ public abstract class ClientPlayNetworkHandlerMixin {
             }
 
         }
+
+
+        for (Item item : BuiltInRegistries.ITEM) {
+            if (item == Items.AIR) continue;
+            if (existingResultItems.contains(item)) continue;
+            nonexistingResultItems.add(item);
+        }
+
         // Здесь он уже заполнен — безопасно использовать
     }
 

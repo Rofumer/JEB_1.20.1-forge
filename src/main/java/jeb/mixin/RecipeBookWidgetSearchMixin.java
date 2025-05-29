@@ -40,6 +40,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.*;
 
+import static jeb.Jeb.filtered;
+import static jeb.Jeb.search;
+
 
 @Mixin(RecipeBookComponent.class)
 //public abstract class RecipeBookWidgetSearchMixin<T extends AbstractRecipeScreenHandler> implements RecipeBookWidgetBridge {
@@ -277,7 +280,8 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void onKeyPressed(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
         // Проверка на нужную клавишу (например, клавиша G, keyCode = 71)
-        if (keyCode == GLFW.GLFW_KEY_A) {
+        //if (keyCode == GLFW.GLFW_KEY_A) {
+        if (Jeb.ClientModEvents.FAVORITE_KEY != null && Jeb.ClientModEvents.FAVORITE_KEY.matches(keyCode, scanCode)) {
             RecipeButton hovered = ((RecipeBookResultsAccessor) recipeBookPage).getHoveredResultButton();
             if (hovered != null) {
                 //System.out.println("Над кнопкой: " + hovered.getDisplayStack().getItem().toString());
@@ -615,7 +619,102 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
 
     ///@Shadow public abstract void reset();
 
+
     @Inject(method = "updateCollections", at = @At("HEAD"), cancellable = true)
+    private void onCustomSearch(boolean resetCurrentPage, CallbackInfo ci) {
+        String string = searchBox.getValue();
+        boolean searchIngredients = string.startsWith("#");
+        String query = (searchIngredients ? string.substring(1) : string).toLowerCase();
+
+        String modName = null;
+        if (string.startsWith("@")) {
+            int endIndex = string.indexOf(" ");
+            if (endIndex != -1) {
+                modName = string.substring(1, endIndex).trim();
+                query = string.substring(endIndex + 1).toLowerCase();
+            } else {
+                modName = string.substring(1).trim();
+                query = "";
+            }
+        }
+
+        List<RecipeCollection> filteredList = new ArrayList<>();
+
+        // === Favorites tab ===
+        if (isFavoritesTabActive()) {
+            Set<ResourceLocation> favoriteItems = FavoritesManager.loadFavoriteItemIds();
+            List<RecipeCollection> favorites = new ArrayList<>();
+
+            for (RecipeCollection collection : book.getCollection(RecipeBookCategories.CRAFTING_SEARCH)) {
+                for (Recipe<?> recipe : collection.getRecipes()) {
+                    ItemStack stack = recipe.getResultItem(minecraft.level.registryAccess());
+                    if (!stack.isEmpty()) {
+                        ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
+                        if (favoriteItems.contains(id)) {
+                            favorites.add(new RecipeCollection(minecraft.level.registryAccess(), List.of(recipe)));
+                            break; // no need to keep scanning this collection
+                        }
+                    }
+                }
+            }
+
+            filteredList.addAll(favorites);
+            recipeBookPage.updateCollections(filteredList, resetCurrentPage);
+            ci.cancel();
+            return;
+        }
+
+               // === Standard search ===
+            for (RecipeCollection collection : book.getCollection(selectedTab.getCategory())) {
+                if (!collection.hasFitting()) continue;
+
+                for (Recipe<?> recipe : collection.getRecipes()) {
+                    boolean match = searchIngredients
+                            ? recipeDisplayMatchesIngredientQuery(recipe, query)
+                            : recipeResultMatchesQuery(recipe, query, modName);
+
+                    if (match) {
+                        filteredList.add(collection);
+                        break;
+                    }
+                }
+            }
+
+            StackedContents contents = ((RecipeBookWidgetAccessor) (Object) this).getRecipeFinder();
+
+            for (RecipeCollection rc : filteredList) {
+                rc.canCraft(contents,
+                        ((RecipeBookWidgetAccessor) this).getCraftingScreenHandler().getGridWidth(),
+                        ((RecipeBookWidgetAccessor) this).getCraftingScreenHandler().getGridHeight(),
+                        book
+                );
+            }
+
+            if (jeb$customToggleState) {
+                filteredList.removeIf(rc -> !rc.hasFitting());
+            }
+
+            if (book.isFiltering(menu)) {
+                filteredList.removeIf(rc -> !rc.hasCraftable());
+            }
+
+
+
+
+        if(!Objects.equals(search, string))
+        {
+            filtered = Jeb.generateCustomRecipeList(string);
+        }
+
+        filteredList.addAll(filtered);
+
+        search = string;
+        recipeBookPage.updateCollections(filteredList, resetCurrentPage);
+        ci.cancel();
+    }
+
+
+    /*@Inject(method = "updateCollections", at = @At("HEAD"), cancellable = true)
     private void onCustomSearch(boolean resetCurrentPage, CallbackInfo ci) {
         String string = searchBox.getValue();
         boolean searchIngredients = string.startsWith("#");
@@ -722,18 +821,18 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
         filteredList.addAll(Jeb.generateCustomRecipeList(string));
 
         ///recipesArea.setResults(filteredList, resetCurrentPage, filteringCraftable);
-        /*List<RecipeResultCollection> filteredList1 = Lists.newArrayList(filteredList);
-        //recipesArea.setResults(filteredList1, resetCurrentPage);
-        if(jeb$customToggleState) {
-            filteredList1.removeIf((resultCollection) -> !resultCollection.hasFittingRecipes());
-        }
+        ///List<RecipeResultCollection> filteredList1 = Lists.newArrayList(filteredList);
+        /////recipesArea.setResults(filteredList1, resetCurrentPage);
+        ///if(jeb$customToggleState) {
+        ///    filteredList1.removeIf((resultCollection) -> !resultCollection.hasFittingRecipes());
+        ///}
 
-        if (this.recipeBook.isFilteringCraftable(craftingScreenHandler)) {
-            filteredList1.removeIf(rc -> !rc.hasCraftableRecipes());
-        }*/
+        ///if (this.recipeBook.isFilteringCraftable(craftingScreenHandler)) {
+        ///    filteredList1.removeIf(rc -> !rc.hasCraftableRecipes());
+        ///}
         recipeBookPage.updateCollections(filteredList, resetCurrentPage);
         ci.cancel();
-    }
+    }*/
 
 
 
