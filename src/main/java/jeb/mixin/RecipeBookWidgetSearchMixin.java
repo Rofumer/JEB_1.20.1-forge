@@ -2,6 +2,7 @@ package jeb.mixin;
 
 import jeb.accessor.AnimatedResultButtonExtension;
 import jeb.accessor.RecipeBookWidgetBridge;
+import jeb.client.DummySingleItemRecipe;
 import jeb.client.FavoritesManager;
 import jeb.Jeb;
 import net.minecraft.client.ClientRecipeBook;
@@ -13,9 +14,7 @@ import net.minecraft.client.gui.components.StateSwitchingButton;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.recipebook.*;
-import com.google.common.collect.Lists;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceLocation;
@@ -24,11 +23,7 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.RecipeBookMenu;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.crafting.Ingredient;
-import net.minecraft.world.item.crafting.Recipe;
-import net.minecraft.world.item.crafting.RecipeManager;
-import net.minecraftforge.common.util.RecipeMatcher;
-import org.lwjgl.glfw.GLFW;
+import net.minecraft.world.item.crafting.*;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -623,8 +618,12 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
     @Inject(method = "updateCollections", at = @At("HEAD"), cancellable = true)
     private void onCustomSearch(boolean resetCurrentPage, CallbackInfo ci) {
         String string = searchBox.getValue();
+
+
+
         boolean searchIngredients = string.startsWith("#");
-        String query = (searchIngredients ? string.substring(1) : string).toLowerCase();
+        boolean searchByResult = string.startsWith("~");
+        String query = (searchIngredients || searchByResult ? string.substring(1) : string).toLowerCase();
 
         String modName = null;
         if (string.startsWith("@")) {
@@ -639,6 +638,54 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
         }
 
         List<RecipeCollection> filteredList = new ArrayList<>();
+
+
+        if (string.startsWith("~")) {
+            List<RecipeCollection> ingredientsList = new ArrayList<>();
+
+            for (RecipeCollection collection : book.getCollection(selectedTab.getCategory())) {
+                for (Recipe<?> recipe : collection.getRecipes()) {
+                    ItemStack result = recipe.getResultItem(minecraft.level.registryAccess());
+                    String resultName = result.getItem().toString();//.getString().toLowerCase();
+                    if (resultName.equals(query)) {
+                        for (Ingredient ingredient : recipe.getIngredients()) {
+                            for (ItemStack stack : ingredient.getItems()) {
+                                if (!stack.isEmpty()) {
+                                    // Создаём фиктивный RecipeCollection с одним "рецептом" — результат stack
+                                    // Проверяем, есть ли коллекция рецептов, где результат — этот ингредиент
+                                    boolean foundReal = false;
+                                    for (RecipeCollection subCollection : book.getCollection(RecipeBookCategories.CRAFTING_SEARCH)) {
+                                        for (Recipe<?> subRecipe : subCollection.getRecipes()) {
+                                            ItemStack subResult = subRecipe.getResultItem(minecraft.level.registryAccess());
+                                            if (!subResult.isEmpty() && ItemStack.isSameItemSameTags(subResult, stack)) {
+                                                ingredientsList.add(subCollection);
+                                                foundReal = true;
+                                                break;
+                                            }
+                                        }
+                                        if (foundReal) break;
+                                    }
+
+// Если не нашли настоящих рецептов — добавим фейковую коллекцию
+                                    if (!foundReal) {
+                                        Recipe<?> fakeRecipe = new DummySingleItemRecipe(stack);
+                                        ingredientsList.add(new RecipeCollection(minecraft.level.registryAccess(), List.of(fakeRecipe)));
+                                    }
+
+                                    break; // только один stack из одного ingredient
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            filteredList.addAll(ingredientsList);
+            recipeBookPage.updateCollections(filteredList, resetCurrentPage);
+            ci.cancel();
+            return;
+        }
+
 
         // === Favorites tab ===
         if (isFavoritesTabActive()) {
@@ -894,3 +941,4 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
     }*/
 
 }
+

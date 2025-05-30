@@ -68,6 +68,22 @@ public class RecipeBookResultsMixin {
         //if (animatedResultButton.mouseClicked(mouseX, mouseY, button)) {
         if (hovered != null) {
 
+
+            if (p_100412_ == 2) {
+
+                ItemStack stack = hovered.getRecipe().getResultItem(minecraft.level.registryAccess());
+                String itemName = stack.getItem().asItem().toString(); // Локализованное имя (например, "Булыжник")
+                String searchText = "~" + itemName.toLowerCase(Locale.ROOT);
+
+// Устанавливаем в поиск
+                ((RecipeBookWidgetAccessor) jeb$widget).getSearchField().setValue(searchText);
+                ((RecipeBookWidgetAccessor) jeb$widget).invokeReset();
+
+                cir.setReturnValue(true);
+                cir.cancel();
+
+            }
+
             if (p_100412_ == 1) {
                 ItemStack stack = hovered.getRecipe().getResultItem(minecraft.level.registryAccess());
                 String itemName = stack.getItem().asItem().toString(); // Локализованное имя (например, "Булыжник")
