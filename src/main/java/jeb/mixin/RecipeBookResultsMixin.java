@@ -77,6 +77,7 @@ public class RecipeBookResultsMixin {
 
 // Устанавливаем в поиск
                 ((RecipeBookWidgetAccessor) jeb$widget).getSearchField().setValue(searchText);
+                ((RecipeBookWidgetAccessor) jeb$widget).setSelectedTab((RecipeBookTabButton) ((RecipeBookWidgetAccessor) jeb$widget).getTabButtons().get(0));
                 ((RecipeBookWidgetAccessor) jeb$widget).invokeReset();
 
                 cir.setReturnValue(true);
@@ -91,6 +92,7 @@ public class RecipeBookResultsMixin {
 
 // Устанавливаем в поиск
                 ((RecipeBookWidgetAccessor) jeb$widget).getSearchField().setValue(searchText);
+                ((RecipeBookWidgetAccessor) jeb$widget).setSelectedTab((RecipeBookTabButton) ((RecipeBookWidgetAccessor) jeb$widget).getTabButtons().get(0));
                 ((RecipeBookWidgetAccessor) jeb$widget).invokeReset();
 
                 cir.setReturnValue(true);

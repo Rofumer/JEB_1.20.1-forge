@@ -640,7 +640,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
         List<RecipeCollection> filteredList = new ArrayList<>();
 
 
-        if (string.startsWith("~")) {
+        if (string.startsWith("~") && !isFavoritesTabActive()) {
             List<RecipeCollection> ingredientsList = new ArrayList<>();
 
             for (RecipeCollection collection : book.getCollection(selectedTab.getCategory())) {
