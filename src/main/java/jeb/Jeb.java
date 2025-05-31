@@ -62,6 +62,7 @@ public class Jeb {
     public static Set<Item> nonexistingResultItems = new HashSet<>();
     public static String search = "-";
     public static List<RecipeCollection> filtered = new ArrayList<>();
+    public static List<RecipeCollection> emptysearch = new ArrayList<>();
 
     public static boolean recipesLoaded = false;
 
@@ -334,6 +335,8 @@ public class Jeb {
     @SubscribeEvent
     public static void onClientLogin(ClientPlayerNetworkEvent.LoggingIn event) {
         recipesLoaded = false;
+        search = "-";
+        emptysearch.clear();
         existingResultItems.clear();
         nonexistingResultItems.clear();
     }

@@ -35,8 +35,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.*;
 
-import static jeb.Jeb.filtered;
-import static jeb.Jeb.search;
+import static jeb.Jeb.*;
 
 
 @Mixin(RecipeBookComponent.class)
@@ -116,6 +115,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
                     152, 78, 26, 26,           // pressedUOffset (сдвиг по X при активном состоянии), hoverVOffset (сдвиг по Y при наведении)
                     new ResourceLocation("minecraft", "textures/gui/recipe_book.png")  // текстура
             );
+            jeb$customToggleButton.setStateTriggered(false);
         }
         else
         {
@@ -124,6 +124,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
                     152, 78, 26, 26,           // pressedUOffset (сдвиг по X при активном состоянии), hoverVOffset (сдвиг по Y при наведении)
                     new ResourceLocation("minecraft", "textures/gui/recipe_book.png")
             );
+            jeb$customToggleButton.setStateTriggered(true);
         }
         jeb$customToggleButton.setMessage(Component.literal("!"));
         jeb$customToggleButton.visible = true;
@@ -161,6 +162,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
                         152, 78, 26, 26,           // pressedUOffset (сдвиг по X при активном состоянии), hoverVOffset (сдвиг по Y при наведении)
                         new ResourceLocation("minecraft", "textures/gui/recipe_book.png")
                 );
+                jeb$customToggleButton.setStateTriggered(false);
             }
             else
             {
@@ -168,6 +170,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
                         152, 78, 26, 26,           // pressedUOffset (сдвиг по X при активном состоянии), hoverVOffset (сдвиг по Y при наведении)
                         new ResourceLocation("minecraft", "textures/gui/recipe_book.png")
                 );
+                jeb$customToggleButton.setStateTriggered(true);
             }
 
             jeb$customToggleButton.setTooltip(Jeb.customToggleEnabled ? (Tooltip.create(Component.literal("Show 3x3"))):(Tooltip.create(Component.literal("Show 2x2"))));
@@ -619,7 +622,11 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
     private void onCustomSearch(boolean resetCurrentPage, CallbackInfo ci) {
         String string = searchBox.getValue();
 
-
+        if (string != null && string.trim().isEmpty() && emptysearch != null && !emptysearch.isEmpty())
+        {
+            recipeBookPage.updateCollections(emptysearch, resetCurrentPage);
+            ci.cancel();
+        }
 
         boolean searchIngredients = string.startsWith("#");
         boolean searchByResult = string.startsWith("~");
@@ -755,7 +762,14 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
 
         filteredList.addAll(filtered);
 
+
+        if (string != null && string.trim().isEmpty() && emptysearch.isEmpty())
+        {
+            emptysearch = filteredList;
+        }
+
         search = string;
+
         recipeBookPage.updateCollections(filteredList, resetCurrentPage);
         ci.cancel();
     }
