@@ -736,12 +736,14 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
 
             StackedContents contents = ((RecipeBookWidgetAccessor) (Object) this).getRecipeFinder();
 
-            for (RecipeCollection rc : filteredList) {
-                rc.canCraft(contents,
-                        ((RecipeBookWidgetAccessor) this).getCraftingScreenHandler().getGridWidth(),
-                        ((RecipeBookWidgetAccessor) this).getCraftingScreenHandler().getGridHeight(),
-                        book
-                );
+            if(!(((RecipeBookWidgetAccessor) this).getSearchField().isActive() && ((RecipeBookWidgetAccessor) this).getSearchField().isVisible() && ((RecipeBookWidgetAccessor) this).getSearchField().isFocused())) {
+                for (RecipeCollection rc : filteredList) {
+                    rc.canCraft(contents,
+                            ((RecipeBookWidgetAccessor) this).getCraftingScreenHandler().getGridWidth(),
+                            ((RecipeBookWidgetAccessor) this).getCraftingScreenHandler().getGridHeight(),
+                            book
+                    );
+                }
             }
 
             if (jeb$customToggleState) {
