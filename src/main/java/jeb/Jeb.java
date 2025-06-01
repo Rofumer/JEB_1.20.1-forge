@@ -5,6 +5,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.logging.LogUtils;
+import jeb.client.DummySingleItemRecipe;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.recipebook.RecipeCollection;
@@ -106,6 +107,75 @@ public class Jeb {
 
 
     public static List<RecipeCollection> generateCustomRecipeList(String filter) {
+        List<RecipeCollection> list = new ArrayList<>();
+        Minecraft client = Minecraft.getInstance();
+
+        String query = "";
+        String modName = null;
+
+        filter = filter.trim();
+        if (filter.startsWith("@")) {
+            String[] parts = filter.substring(1).split(" ", 2);
+            modName = parts[0].toLowerCase(Locale.ROOT);
+            if (parts.length > 1) {
+                query = parts[1].toLowerCase(Locale.ROOT);
+            }
+        } else {
+            query = filter.toLowerCase(Locale.ROOT);
+        }
+
+        for (Item item : nonexistingResultItems.toArray(new Item[0])) {
+            if (item == Items.AIR) continue;
+
+            ResourceLocation id = BuiltInRegistries.ITEM.getKey(item);
+            String idStr = id.toString().toLowerCase(Locale.ROOT);
+            String name = item.getDefaultInstance().getDisplayName().getString().toLowerCase(Locale.ROOT);
+            String key = "";
+
+            Component nameComponent = item.getDefaultInstance().getDisplayName();
+            if (nameComponent.getContents() instanceof TranslatableContents translatable) {
+                key = translatable.getKey().toLowerCase(Locale.ROOT);
+            }
+
+            // Фильтрация по мод-нейму
+            if (modName != null && !id.getNamespace().toLowerCase(Locale.ROOT).contains(modName)) {
+                continue;
+            }
+
+            // Основной поиск
+            boolean matchesBasic = name.contains(query) || idStr.contains(query) || key.contains(query);
+            boolean matchesTooltip = false;
+
+            if (!matchesBasic && query.length() >= 3 && client.level != null) {
+                TooltipFlag tooltipFlag = client.options.advancedItemTooltips
+                        ? TooltipFlag.Default.ADVANCED
+                        : TooltipFlag.Default.NORMAL;
+
+                try {
+                    List<Component> tooltip = item.getDefaultInstance().getTooltipLines(client.player, tooltipFlag);
+                    for (Component line : tooltip) {
+                        String clean = net.minecraft.ChatFormatting.stripFormatting(line.getString()).toLowerCase(Locale.ROOT).trim();
+                        if (clean.contains(query)) {
+                            matchesTooltip = true;
+                            break;
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if (!matchesBasic && !matchesTooltip) continue;
+
+            Recipe<?> dummy = new DummySingleItemRecipe(item.getDefaultInstance());
+            list.add(new RecipeCollection(client.level.registryAccess(), List.of(dummy)));
+        }
+
+        return list;
+    }
+
+
+    /*public static List<RecipeCollection> generateCustomRecipeList(String filter) {
         List<RecipeCollection> list = new ArrayList<>();
 
         Minecraft client = Minecraft.getInstance();
@@ -228,29 +298,11 @@ public class Jeb {
                 }
             };
 
-           /* NetworkRecipeId recipeId = new NetworkRecipeId(9999);
-
-            List<SlotDisplay> slots = List.of(
-                    new SlotDisplay.TagSlotDisplay(TagKey.of(RegistryKeys.ITEM, Identifier.of("minecraft", id.getPath())))
-            );
-
-            SlotDisplay.StackSlotDisplay resultSlot = new SlotDisplay.StackSlotDisplay(new ItemStack(item, 1));
-            SlotDisplay.ItemSlotDisplay stationSlot = new SlotDisplay.ItemSlotDisplay(
-                    Registries.ITEM.get(Identifier.of("minecraft", "crafting_table"))
-            );
-
-            OptionalInt group = OptionalInt.empty();
-            RecipeBookCategory category = RecipeBookCategories.CRAFTING_MISC;
-
-            List<Ingredient> ingredients = List.of(Ingredient.ofItems(item));
-
-            ShapelessCraftingRecipeDisplay display = new ShapelessCraftingRecipeDisplay(slots, resultSlot, stationSlot);
-            RecipeDisplayEntry entry = new RecipeDisplayEntry(recipeId, display, group, category, Optional.of(ingredients));*/
             list.add(new RecipeCollection(client.level.registryAccess(),List.of(recipe)));
         }
 
         return list;
-    }
+    }*/
 
 
 
