@@ -5,6 +5,7 @@ import jeb.accessor.RecipeBookWidgetBridge;
 import jeb.client.DummySingleItemRecipe;
 import jeb.client.FavoritesManager;
 import jeb.Jeb;
+import jeb.client.JebClient;
 import net.minecraft.client.ClientRecipeBook;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.RecipeBookCategories;
@@ -36,6 +37,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.*;
 
 import static jeb.Jeb.*;
+import static jeb.client.JebClient.emptysearch;
+import static jeb.client.JebClient.filtered;
 
 
 @Mixin(RecipeBookComponent.class)
@@ -279,7 +282,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
     private void onKeyPressed(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
         // Проверка на нужную клавишу (например, клавиша G, keyCode = 71)
         //if (keyCode == GLFW.GLFW_KEY_A) {
-        if (Jeb.ClientModEvents.FAVORITE_KEY != null && Jeb.ClientModEvents.FAVORITE_KEY.matches(keyCode, scanCode)) {
+        if (JebClient.FAVORITE_KEY != null && JebClient.FAVORITE_KEY.matches(keyCode, scanCode)) {
             RecipeButton hovered = ((RecipeBookResultsAccessor) recipeBookPage).getHoveredResultButton();
             if (hovered != null) {
                 //System.out.println("Над кнопкой: " + hovered.getDisplayStack().getItem().toString());
@@ -759,7 +762,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
 
         if(!Objects.equals(search, string))
         {
-            filtered = Jeb.generateCustomRecipeList(string);
+            filtered = JebClient.generateCustomRecipeList(string);
         }
 
         filteredList.addAll(filtered);
