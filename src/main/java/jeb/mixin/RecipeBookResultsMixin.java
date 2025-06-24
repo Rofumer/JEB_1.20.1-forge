@@ -112,8 +112,7 @@ public class RecipeBookResultsMixin {
 
                 if(entry != null) {
 
-                    if(!canDisplay(hovered.getRecipe())
-                    )
+                    if(!canDisplay(hovered.getRecipe()) && !hovered.getRecipe().getIngredients().isEmpty())
                     {
                         //int p_100413_, int p_100414_, int p_100415_, int p_100416_
                         overlay.init(minecraft,entry, hovered.getX(), hovered.getY(), p_100413_ + p_100415_ / 2, p_100414_ + 13 + p_100416_ / 2, (float) hovered.getWidth());

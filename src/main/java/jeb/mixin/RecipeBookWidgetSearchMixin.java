@@ -765,7 +765,9 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
             filtered = JebClient.generateCustomRecipeList(string);
         }
 
-        filteredList.addAll(filtered);
+        if(!filterButton.isStateTriggered()) {
+            filteredList.addAll(filtered);
+        }
 
 
         if (string != null && string.trim().isEmpty() && emptysearch.isEmpty())
