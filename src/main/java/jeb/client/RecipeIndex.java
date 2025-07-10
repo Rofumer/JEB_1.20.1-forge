@@ -12,6 +12,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.RecipeBookType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.crafting.Recipe;
 import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
@@ -62,7 +63,35 @@ public class RecipeIndex {
         Set<ResourceLocation> uniqueRecipes = new HashSet<>();
 
         for (RecipeBookCategories category : RecipeBookCategories.values()) {
-            List<RecipeCollection> collections = book.getCollection(category);
+            List<RecipeCollection> collections;
+
+            long filterstartTime = System.currentTimeMillis();
+            LOGGER.info("[JEB] buildRecipeIndex filtering started at {}", new Date(filterstartTime));
+
+            List<RecipeCollection> filteredCollections = new ArrayList<>();
+
+            for (RecipeCollection collection : book.getCollection(category)) {
+                // Оставляем только те рецепты, которые дают валидный результат
+                List<Recipe<?>> filtered = collection.getRecipes().stream()
+                        .filter(recipe -> {
+                            ItemStack result = recipe.getResultItem(minecraft.level.registryAccess());
+                            return result != null && !result.isEmpty() && result.getItem() != Items.AIR;
+                        })
+                        .toList();
+
+                // Если после фильтрации в коллекции что-то осталось — добавляем новую коллекцию
+                if (!filtered.isEmpty()) {
+                    filteredCollections.add(new RecipeCollection(
+                            minecraft.level.registryAccess(), filtered
+                    ));
+                }
+            }
+
+            long filterendTime = System.currentTimeMillis();
+            long filterduration = filterendTime - filterstartTime;
+            LOGGER.info("[JEB] buildRecipeIndex filter {} done at {} ({} ms)", category, new Date(filterendTime), filterduration);
+
+            collections =filteredCollections;
             if (collections.isEmpty()) continue;
 
             Set<RecipeCollection> categoryCollections = new LinkedHashSet<>();
@@ -75,7 +104,7 @@ public class RecipeIndex {
                 categoryCollections.add(collection);
                 for (Recipe<?> recipe : collection.getRecipes()) {
                     ItemStack result = recipe.getResultItem(minecraft.level.registryAccess());
-                    if (result == null || result.isEmpty()) continue;
+                    //if (result == null || result.isEmpty() || result.getItem() == Items.AIR) continue;
                     ResourceLocation recipeId = recipe.getId();
                     if (uniqueRecipes.add(recipeId)) {
                         totalIndexedRecipes++;
