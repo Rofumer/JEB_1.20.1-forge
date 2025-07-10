@@ -626,12 +626,6 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
     private void onCustomSearch(boolean resetCurrentPage, CallbackInfo ci) {
         String string = searchBox.getValue();
 
-        if (string != null && string.trim().isEmpty() && emptysearch != null && !emptysearch.isEmpty())
-        {
-            recipeBookPage.updateCollections(emptysearch, resetCurrentPage);
-            ci.cancel();
-        }
-
         boolean searchIngredients = string.startsWith("#");
         boolean searchByResult = string.startsWith("~");
         String query = (searchIngredients || searchByResult ? string.substring(1) : string).toLowerCase();
@@ -790,12 +784,6 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
 
         if(!filterButton.isStateTriggered()) {
             filteredList.addAll(filtered);
-        }
-
-
-        if (string != null && string.trim().isEmpty() && emptysearch.isEmpty())
-        {
-            emptysearch = filteredList;
         }
 
         search = string;
