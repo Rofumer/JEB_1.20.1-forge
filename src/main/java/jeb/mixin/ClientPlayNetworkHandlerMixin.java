@@ -1,5 +1,6 @@
 package jeb.mixin;
 
+import jeb.client.RecipeIndex;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.recipebook.RecipeCollection;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -21,6 +22,7 @@ import java.util.List;
 
 import static jeb.Jeb.existingResultItems;
 import static jeb.Jeb.nonexistingResultItems;
+import static jeb.client.RecipeIndex.buildRecipeIndex;
 
 @Mixin(ClientPacketListener.class)
 public abstract class ClientPlayNetworkHandlerMixin {
@@ -58,6 +60,10 @@ public abstract class ClientPlayNetworkHandlerMixin {
         }
 
         // Здесь он уже заполнен — безопасно использовать
+
+        RecipeIndex.fillItemIndex(Minecraft.getInstance());
+        buildRecipeIndex();
+
     }
 
 }

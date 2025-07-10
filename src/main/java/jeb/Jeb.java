@@ -39,7 +39,7 @@ import java.util.Set;
 public class Jeb {
 
     public static final String MODID = "jeb";
-    private static final Logger LOGGER = LogUtils.getLogger();
+    public static final Logger LOGGER = LogUtils.getLogger();
 
     public static boolean customToggleEnabled = true;
     public static boolean recipesLoaded = false;

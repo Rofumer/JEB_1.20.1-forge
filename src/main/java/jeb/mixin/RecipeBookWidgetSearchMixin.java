@@ -6,6 +6,7 @@ import jeb.client.DummySingleItemRecipe;
 import jeb.client.FavoritesManager;
 import jeb.Jeb;
 import jeb.client.JebClient;
+import jeb.client.RecipeIndex;
 import net.minecraft.client.ClientRecipeBook;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.RecipeBookCategories;
@@ -668,6 +669,12 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
                                         for (Recipe<?> subRecipe : subCollection.getRecipes()) {
                                             ItemStack subResult = subRecipe.getResultItem(minecraft.level.registryAccess());
                                             if (!subResult.isEmpty() && ItemStack.isSameItemSameTags(subResult, stack)) {
+                                                StackedContents contents = ((RecipeBookWidgetAccessor) (Object) this).getRecipeFinder();
+                                                subCollection.canCraft(contents,
+                                                        3,
+                                                        3,
+                                                        book
+                                                );
                                                 ingredientsList.add(subCollection);
                                                 foundReal = true;
                                                 break;
@@ -679,7 +686,14 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
 // Если не нашли настоящих рецептов — добавим фейковую коллекцию
                                     if (!foundReal) {
                                         Recipe<?> fakeRecipe = new DummySingleItemRecipe(stack);
-                                        ingredientsList.add(new RecipeCollection(minecraft.level.registryAccess(), List.of(fakeRecipe)));
+                                        RecipeCollection dummycollection = new RecipeCollection(minecraft.level.registryAccess(), List.of(fakeRecipe));
+                                        StackedContents contents = ((RecipeBookWidgetAccessor) (Object) this).getRecipeFinder();
+                                        dummycollection.canCraft(contents,
+                                                3,
+                                                3,
+                                                book
+                                        );
+                                        ingredientsList.add(dummycollection);
                                     }
 
                                     break; // только один stack из одного ingredient
@@ -708,7 +722,14 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
                     if (!stack.isEmpty()) {
                         ResourceLocation id = BuiltInRegistries.ITEM.getKey(stack.getItem());
                         if (favoriteItems.contains(id)) {
-                            favorites.add(new RecipeCollection(minecraft.level.registryAccess(), List.of(recipe)));
+                            RecipeCollection dummycollection = new RecipeCollection(minecraft.level.registryAccess(), List.of(recipe));
+                            StackedContents contents = ((RecipeBookWidgetAccessor) (Object) this).getRecipeFinder();
+                            dummycollection.canCraft(contents,
+                                    3,
+                                    3,
+                                    book
+                            );
+                            favorites.add(dummycollection);
                             break; // no need to keep scanning this collection
                         }
                     }
@@ -722,7 +743,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
         }
 
                // === Standard search ===
-            for (RecipeCollection collection : book.getCollection(selectedTab.getCategory())) {
+            /*for (RecipeCollection collection : book.getCollection(selectedTab.getCategory())) {
                 if (!collection.hasFitting()) continue;
 
                 for (Recipe<?> recipe : collection.getRecipes()) {
@@ -735,7 +756,9 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
                         break;
                     }
                 }
-            }
+            }*/
+
+            filteredList = new ArrayList<>(RecipeIndex.fastSearch(selectedTab.getCategory(),query, modName, searchIngredients));
 
             StackedContents contents = ((RecipeBookWidgetAccessor) (Object) this).getRecipeFinder();
 
@@ -762,7 +785,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
 
         if(!Objects.equals(search, string))
         {
-            filtered = JebClient.generateCustomRecipeList(string);
+            filtered = RecipeIndex.generateCustomRecipeList(string);
         }
 
         if(!filterButton.isStateTriggered()) {

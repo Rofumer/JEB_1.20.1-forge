@@ -3,6 +3,7 @@ package jeb.mixin;
 import net.minecraft.client.ClientRecipeBook;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.recipebook.*;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.protocol.game.ServerboundRecipeBookSeenRecipePacket;
 import net.minecraft.world.inventory.RecipeBookMenu;
 import net.minecraft.world.item.ItemStack;
@@ -87,7 +88,8 @@ public class RecipeBookResultsMixin {
 
             if (p_100412_ == 1) {
                 ItemStack stack = hovered.getRecipe().getResultItem(minecraft.level.registryAccess());
-                String itemName = stack.getItem().asItem().toString(); // Локализованное имя (например, "Булыжник")
+                //String itemName = stack.getItem().asItem().toString(); // Локализованное имя (например, "Булыжник")
+                String itemName = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString().toLowerCase(Locale.ROOT);
                 String searchText = "#" + itemName.toLowerCase(Locale.ROOT);
 
 // Устанавливаем в поиск
