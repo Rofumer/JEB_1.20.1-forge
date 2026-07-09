@@ -1,5 +1,6 @@
 package jeb.mixin;
 
+import jeb.accessor.RecipeBookWidgetBridge;
 import net.minecraft.client.ClientRecipeBook;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.recipebook.*;
@@ -76,6 +77,11 @@ public class RecipeBookResultsMixin {
                 String itemName = stack.getItem().asItem().toString(); // Локализованное имя (например, "Булыжник")
                 String searchText = "~" + itemName.toLowerCase(Locale.ROOT);
 
+                ((RecipeBookWidgetBridge) jeb$widget).jeb$pushHistory(
+                        ((RecipeBookWidgetAccessor) jeb$widget).getSearchField().getValue(),
+                        ((RecipeBookWidgetAccessor) jeb$widget).getSelectedTab()
+                );
+
 // Устанавливаем в поиск
                 ((RecipeBookWidgetAccessor) jeb$widget).getSearchField().setValue(searchText);
                 ((RecipeBookWidgetAccessor) jeb$widget).setSelectedTab((RecipeBookTabButton) ((RecipeBookWidgetAccessor) jeb$widget).getTabButtons().get(0));
@@ -91,6 +97,11 @@ public class RecipeBookResultsMixin {
                 //String itemName = stack.getItem().asItem().toString(); // Локализованное имя (например, "Булыжник")
                 String itemName = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString().toLowerCase(Locale.ROOT);
                 String searchText = "#" + itemName.toLowerCase(Locale.ROOT);
+
+                ((RecipeBookWidgetBridge) jeb$widget).jeb$pushHistory(
+                        ((RecipeBookWidgetAccessor) jeb$widget).getSearchField().getValue(),
+                        ((RecipeBookWidgetAccessor) jeb$widget).getSelectedTab()
+                );
 
 // Устанавливаем в поиск
                 ((RecipeBookWidgetAccessor) jeb$widget).getSearchField().setValue(searchText);

@@ -10,6 +10,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.inventory.RecipeBookType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.TooltipFlag;
@@ -24,8 +25,12 @@ import org.lwjgl.glfw.GLFW;
 
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 @Mod.EventBusSubscriber(modid = Jeb.MODID, bus = Mod.EventBusSubscriber.Bus.FORGE, value = Dist.CLIENT)
 public class JebClient {
@@ -38,6 +43,15 @@ public class JebClient {
     public static List<RecipeCollection> emptysearch = new ArrayList<>();
     public static List<RecipeCollection> PREGENERATED_RECIPES = new ArrayList<>();
     // --------------------------------------
+
+    // Последний текст поиска по каждому типу книги рецептов (верстак/печь/...).
+    // Живёт только в памяти клиента — переживает закрытие/переоткрытие экрана,
+    // но не переживает перезапуск игры.
+    public static final Map<RecipeBookType, String> lastSearchByType = new HashMap<>();
+
+    // Стек предыдущих поисковых запросов (кнопка "назад") по каждому типу книги
+    // рецептов — по той же причине хранится тут, а не в самом компоненте.
+    public static final Map<RecipeBookType, Deque<SearchHistoryEntry>> searchHistoryByType = new HashMap<>();
 
     @SubscribeEvent
     public static void onClientSetup(FMLClientSetupEvent event) {
@@ -67,6 +81,8 @@ public class JebClient {
         filtered.clear();
         emptysearch.clear();
         PREGENERATED_RECIPES.clear();
+        lastSearchByType.clear();
+        searchHistoryByType.clear();
         // Можно добавить логику инициализации по желанию
         ClientLevel level = Minecraft.getInstance().level;
         if (level != null) {
