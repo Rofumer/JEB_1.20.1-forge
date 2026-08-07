@@ -38,6 +38,10 @@ public class JebClient {
 
     public static KeyMapping FAVORITE_KEY;
 
+    // Хоткеи «как в JEI»: показать рецепт / использования предмета под курсором.
+    public static KeyMapping keyViewRecipe;
+    public static KeyMapping keyViewUses;
+
     // --- Вот все клиентские коллекции! ---
     public static List<RecipeCollection> filtered = new ArrayList<>();
     public static List<RecipeCollection> emptysearch = new ArrayList<>();

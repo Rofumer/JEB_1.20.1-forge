@@ -1,10 +1,10 @@
 package jeb.mixin;
 
 import jeb.accessor.RecipeBookWidgetBridge;
+import jeb.client.RecipeSearchQueries;
 import net.minecraft.client.ClientRecipeBook;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.recipebook.*;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.protocol.game.ServerboundRecipeBookSeenRecipePacket;
 import net.minecraft.world.inventory.RecipeBookMenu;
 import net.minecraft.world.item.ItemStack;
@@ -20,7 +20,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
-import java.util.Locale;
 
 @Mixin(RecipeBookPage.class)
 public class RecipeBookResultsMixin {
@@ -74,8 +73,7 @@ public class RecipeBookResultsMixin {
             if (p_100412_ == 2) {
 
                 ItemStack stack = hovered.getRecipe().getResultItem(minecraft.level.registryAccess());
-                String itemName = stack.getItem().asItem().toString(); // Локализованное имя (например, "Булыжник")
-                String searchText = "~" + itemName.toLowerCase(Locale.ROOT);
+                String searchText = RecipeSearchQueries.forResult(stack);
 
                 ((RecipeBookWidgetBridge) jeb$widget).jeb$pushHistory(
                         ((RecipeBookWidgetAccessor) jeb$widget).getSearchField().getValue(),
@@ -94,9 +92,7 @@ public class RecipeBookResultsMixin {
 
             if (p_100412_ == 1) {
                 ItemStack stack = hovered.getRecipe().getResultItem(minecraft.level.registryAccess());
-                //String itemName = stack.getItem().asItem().toString(); // Локализованное имя (например, "Булыжник")
-                String itemName = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString().toLowerCase(Locale.ROOT);
-                String searchText = "#" + itemName.toLowerCase(Locale.ROOT);
+                String searchText = RecipeSearchQueries.forIngredient(stack);
 
                 ((RecipeBookWidgetBridge) jeb$widget).jeb$pushHistory(
                         ((RecipeBookWidgetAccessor) jeb$widget).getSearchField().getValue(),

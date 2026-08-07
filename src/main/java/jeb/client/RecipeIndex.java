@@ -112,8 +112,9 @@ public class RecipeIndex {
                     // --- Индекс по результату ---
                     String resultId = BuiltInRegistries.ITEM.getKey(result.getItem()).toString().toLowerCase(Locale.ROOT);
                     resultIndex.computeIfAbsent(resultId, k -> new ArrayList<>()).add(collection);
-                    // По имени (displayName)
-                    String name = result.getDisplayName().getString().toLowerCase(Locale.ROOT).replaceAll("[\\[\\]«»\"]", "");
+                    // По имени (hoverName — учитывает кастомное имя предмета, например
+                    // предметы датапаков, зарегистрированные под ванильным id)
+                    String name = result.getHoverName().getString().toLowerCase(Locale.ROOT).replaceAll("[\\[\\]«»\"]", "");
                     ///resultIndex.computeIfAbsent(name, k -> new ArrayList<>()).add(collection);
                     for (String source : List.of(resultId, name)) {
                         for (int i = 0; i < source.length(); i++) {

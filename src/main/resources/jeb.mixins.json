@@ -12,6 +12,7 @@
     "ClientRecipeBookMixin",
     "RecipeAlternativesWidgetMixin",
     "RecipeBookGroupMixin",
+    "RecipeBookHoverHotkeyMixin",
     "RecipeBookResultsAccessor",
     "RecipeBookResultsMixin",
     "RecipeBookWidgetAccessor",

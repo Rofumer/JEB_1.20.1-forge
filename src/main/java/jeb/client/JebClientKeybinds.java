@@ -29,6 +29,22 @@ public class JebClientKeybinds {
                 "JEB (Just Enough Book)"
         );
         event.register(JebClient.FAVORITE_KEY);
+
+        JebClient.keyViewRecipe = new KeyMapping(
+                "key.jeb.view_recipe",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_R,
+                "JEB (Just Enough Book)"
+        );
+        event.register(JebClient.keyViewRecipe);
+
+        JebClient.keyViewUses = new KeyMapping(
+                "key.jeb.view_uses",
+                InputConstants.Type.KEYSYM,
+                GLFW.GLFW_KEY_U,
+                "JEB (Just Enough Book)"
+        );
+        event.register(JebClient.keyViewUses);
     }
 
     @SubscribeEvent

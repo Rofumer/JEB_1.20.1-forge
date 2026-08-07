@@ -748,7 +748,10 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
             for (RecipeCollection collection : book.getCollection(selectedTab.getCategory())) {
                 for (Recipe<?> recipe : collection.getRecipes()) {
                     ItemStack result = recipe.getResultItem(minecraft.level.registryAccess());
-                    String resultName = result.getItem().toString();//.getString().toLowerCase();
+                    // Сравниваем по видимому имени, а не по id предмета: на серверах с датапаками
+                    // разные предметы часто зарегистрированы под одним ванильным id и отличаются
+                    // только кастомным именем.
+                    String resultName = result.getHoverName().getString().toLowerCase(Locale.ROOT).trim();
                     if (resultName.equals(query)) {
                         for (Ingredient ingredient : recipe.getIngredients()) {
                             for (ItemStack stack : ingredient.getItems()) {
@@ -796,6 +799,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
             }
 
             filteredList.addAll(ingredientsList);
+            jEB$sortCraftableFirst(filteredList);
             recipeBookPage.updateCollections(filteredList, resetCurrentPage);
             ci.cancel();
             return;
@@ -828,6 +832,7 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
             }
 
             filteredList.addAll(favorites);
+            jEB$sortCraftableFirst(filteredList);
             recipeBookPage.updateCollections(filteredList, resetCurrentPage);
             ci.cancel();
             return;
@@ -885,8 +890,16 @@ public abstract class RecipeBookWidgetSearchMixin implements RecipeBookWidgetBri
 
         search = string;
 
+        jEB$sortCraftableFirst(filteredList);
         recipeBookPage.updateCollections(filteredList, resetCurrentPage);
         ci.cancel();
+    }
+
+    // Сначала показываем то, что игрок может скрафтить прямо сейчас.
+    // Сортировка стабильная, поэтому внутри групп порядок не меняется.
+    @Unique
+    private static void jEB$sortCraftableFirst(List<RecipeCollection> collections) {
+        collections.sort(Comparator.comparing(RecipeCollection::hasCraftable).reversed());
     }
 
 
