@@ -3,6 +3,7 @@ package jeb.mixin;
 import jeb.accessor.AnimatedResultButtonExtension;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.client.gui.screens.recipebook.RecipeCollection;
@@ -10,6 +11,7 @@ import net.minecraft.world.item.crafting.Recipe;
 import org.spongepowered.asm.mixin.Mixin;
 import net.minecraft.client.gui.screens.recipebook.RecipeButton;
 import net.minecraft.world.item.ItemStack;
+import net.minecraftforge.fml.ModList;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -111,6 +113,7 @@ public abstract class AnimatedResultButtonMixin implements AnimatedResultButtonE
             ItemStack itemStack = ((Recipe<?>)this.getOrderedRecipes().get(this.currentIndex)).getResultItem(this.collection.registryAccess());
             List<Component> list = new ArrayList<>(Screen.getTooltipFromItem(Minecraft.getInstance(), itemStack));
 
+            jeb$addModName(list, itemStack);
             list.add(MORE_RECIPES_TEXT);
 
             cir.setReturnValue(list);
@@ -118,6 +121,20 @@ public abstract class AnimatedResultButtonMixin implements AnimatedResultButtonE
             e.printStackTrace();
             cir.setReturnValue(List.of(Component.literal("§c[Error rendering tooltip]")));
         }
+    }
+
+    // Название мода, добавившего предмет (как в JEI). Если JEI или другой мод уже добавил такую строку — не дублируем.
+    @Unique
+    private static void jeb$addModName(List<Component> list, ItemStack stack) {
+        String modId = stack.getItem().getCreatorModId(stack);
+        if (modId == null) return;
+        String modName = ModList.get().getModContainerById(modId)
+                .map(container -> container.getModInfo().getDisplayName())
+                .orElse(modId);
+        for (Component line : list) {
+            if (modName.equals(line.getString())) return;
+        }
+        list.add(Component.literal(modName).withStyle(ChatFormatting.BLUE, ChatFormatting.ITALIC));
     }
 }
 
